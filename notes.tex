@@ -404,8 +404,7 @@ which captures the fact that we may only ever own valid rules.
   \inferrule{ }{\provesJ{\Gamma}{\ownM{t}}{\mval(t)}}
 \end{mathpar}
 With this the Iris logic is an extremely rich framework. It's become
-an ideal setting for describing the ownership of elements of a
-camera.
+an ideal setting for describing the ownership of elements of a camera.
 
 \subsection{Guardedness and L\"{o}b Induction}\label{subsec:guarded}
 
@@ -464,9 +463,42 @@ $[[\TRUE/x]P/x]P$, and so on. This is because the $\later$ modalities
 force the step to decrease whenever a recursive call, avoiding the
 need to every fully construct $\MU x. P$. A precise justification of
 this idea can be found in formal developments of guarded domain
-theory~\citep{Birkedal:10,Birkdel:11} and it's latent
+theory~\citep{Birkedal:10,Birkedal:11} and it's latent in explanations
+such as \citet{America:89}. These are semantic considerations fit for
+exploration in Section~\ref{sec:model}. For now, the only important
+thing is that there is a rule allowing $\MU x. P$ to be treated as a
+fixed point.
 
-More su
+It is important for reasoning in Iris that the later modality commute
+with connectives in the logic. We will also require rules such as:
+\begin{mathpar}
+  \inferrule{ }{\provesIffJ{\Gamma}{\All x : \tau. \later P}{\later \All x : \tau. P}}\and
+  \inferrule{
+    \text{$\tau$ has a member}
+  }{\provesIffJ{\Gamma}{\Exists x : \tau. \later P}{\later \Exists x : \tau. P}}\and
+  \inferrule{ }{\provesIffJ{\Gamma}{\later (P \sep Q)}{\later P \sep \later Q}}
+\end{mathpar}
+These rules are not obvious, commutation with the existential
+quantifier is false in many natural models of guarded
+logic~\citep{Gianantonio:02,Gianantonio:04,Svendsen:16}. The fact that
+the final rule holds at all is a direct result of the extension
+property we required of cameras in
+Subsection~\ref{subsec:ghost}. Further discussion of the commutative
+properties of the $\later$ modality will have to wait till the next
+section where we introduce the last of the connectives of the Iris
+logic. A final rule for the later modality which I have included for
+the sake of completeness is the so called is an fact internalizing
+that for a given proposition if it is true at the next step then
+either \emph{everything} is true at that step or if everything is true
+at the next step it's true now. This is a routine calculation in the
+semantics and proves to be important in isolating \emph{timeless
+  propositions}, the collection of propositions which don't vary as
+the step changes.
+\[
+  \inferrule{ }{
+    \provesJ{\Gamma}{\later P}{\later FALSE \lor (\later \FALSE \to P)}
+  }
+\]
 
 \subsection{The Always \& Update Modality}\label{subsec:always}
 
