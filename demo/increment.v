@@ -93,9 +93,10 @@ Section proofs.
    * code duplication
    *)
   Lemma branch_spec γ γ' ℓ :
-    (inv N (inc_inv γ γ' ℓ) ∗ half γ' -∗
+    ∀ n : nat, (inv N (inc_inv γ γ' ℓ) ∗ half γ' -∗
          WP (#ℓ <- !(#ℓ) + #1) {{ _, epsilon γ }})%I.
   Proof.
+    wp_load.
     iIntros "[#Hinv Hhalfγ']".
     wp_bind (Load _).
     iInv N as "Hinc" "Hclose".

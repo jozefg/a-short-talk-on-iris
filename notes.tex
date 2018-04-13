@@ -1,9 +1,13 @@
 \documentclass{amsart}
 \usepackage{amsmath, amssymb}
+\usepackage{stmaryrd}
 \usepackage{mathpartir}
 \usepackage{natbib}
+\usepackage{hyperref}
 \usepackage{iris}
 
+\newcommand{\provesJ}[3]{#1 \mathop{\vert} #2 \proves #3}
+\newcommand{\provesIffJ}[3]{#1 \mathop{\vert} #2 \provesIff #3}
 \newcommand{\limplies}{\to}
 \newcommand{\forces}{\Vdash}
 \newcommand{\defs}{\triangleq}
@@ -59,7 +63,7 @@ from the handful of modalities added to higher-order bunched
 implication logic to a full blown separation logic. To finish, we
 shall briefly discuss some of the surprising extensions made to Iris.
 
-\section{The Base Logic of Iris}
+\section{The Base Logic of Iris}\label{sec:logic}
 
 It has long been folklore~\footnote{Listen, it's called folklore
   because I don't know who to cite for this observation} that
@@ -140,31 +144,255 @@ implication logic and with it, Iris. The integration of disjunction
 can be done with relatively little effort. Let us now discuss the
 components on top of propositional BI that Iris makes use of.
 
-\subsection{Higher-Order Bunched Implication Logic}
+\subsection{Higher-Order Bunched Implication Logic}\label{subsec:hol}
 
 The generalization of propositional bunched implication logic to
 higher-order bunched implication logic is an important but still quite
 simple move. In order to do this, we first must sketch out the term
-structure of the language. As a matter of ergonomics the actual
-iris-coq formalization uses the native Coq terms as the language
-the logic is built over\footnote{This trick can by formally justified
-  denotational: the model of Iris lives in the topos of trees which
-  supports a full denotational model of Coq.}. On paper, this trick is
-less appealing so we must be upfront about what language we are to use.
+structure of the language the logic is constructed over. As a matter
+of ergonomics the actual iris-coq formalization~\citep{iris-coq} uses
+the native Coq terms as the language the logic is built
+over\footnote{This trick can by formally justified denotational: the
+  model of Iris lives in the topos of trees which supports a full
+  model of Coq.}. On paper, this trick is less appealing so we must be
+upfront about what language we are to use.
 
-\subsection{Integrating Ghost State Parametrically}
+Our language will be a variant of System T to which we freely add
+unit, void, sums, and products. Of course, as this is the language of
+a higher-order logic the language also contains a distinguished type,
+$\Omega$, which serves as the type of propositions. This type has
+operators corresponding to every proposition in our language. Since
+Iris is a higher-order logic rather than a type theory there is no
+operator inflating a proposition into a type nor any sort of
+dependence, this simplifies matters with no real loss of utility. As
+is usual with higher-order logics, define the language relative to a
+signature of constants and axioms. This signature will be important
+for the integration of cameras into the logic, see
+Subsection~\ref{subsec:ghost}. We shall elide the formal definition of
+this language and trust the reader to be familiar with standard
+presentations of such languages.
 
-\subsection{Guardedness and L\"ob Induction}
+With the language fixed, the addition of higher-order aspect of the
+logic is relatively mundane. In particular, in this setting there is
+no real choice of quantifiers as discussed in \citet{OHearn:99}. Terms
+merely exist, they express no form of ownership and therefore we have
+something akin to O'Hearn's additive quantifiers. The judgment for the
+truth of a proposition is altered to
+\[
+  \provesJ{\Gamma}{P}{Q}
+\]
+where $\Gamma$ is a context of term variables so that
+$\Gamma \proves P, Q : \Omega$. The rules for universal
+quantification, existential quantification, and equality are the usual
+adjoint formulation due to Lawvere~\citep{Lawvere:70}.
+\begin{mathpar}
+  \mprset{fraction={===}}
+  \inferrule{
+    \provesJ{\Gamma, x : \tau}{P}{Q}
+  }{\provesJ{\Gamma}{P}{\All x : \tau. Q}}\and
+  \mprset{fraction={===}}
+  \inferrule{
+    \provesJ{\Gamma, x : \tau}{P}{Q}
+  }{\provesJ{\Gamma}{\Exists x : \tau. P}{Q}}\and
+  \mprset{fraction={===}}
+  \inferrule{
+    \provesJ{\Gamma, x : \tau}{\TRUE}{Q}
+  }{\provesJ{\Gamma, x : \tau, y : \tau}{x = y}{Q}}
+\end{mathpar}
+In order for these to be sensible they must of course be paired with
+the appropriate substitution rule.
+\[
+  \inferrule{
+    \Gamma \proves t : \tau\\
+    \provesJ{\Gamma, x : \tau}{P}{Q}
+  }{\provesJ{\Gamma}{[t/x]P}{[t/x]Q}}
+\]
+The rules for bunched implications are unchanged by the addition of a
+context and so there is really nothing else to note on this subject.
 
-\subsection{The Always Modality}
+\subsection{Integrating Ghost State Parametrically}\label{subsec:ghost}
 
-\section{The Model of Iris}
+So far our logic provides a framework for discussing ownership through
+$\sep$ and $\wand$ but it is essentially barren. There is nothing in
+the language of propositions that actually \emph{owns} anything. What
+is needed is a new proposition which allows for something to be
+owned. For this we need a notion of resources which can be manipulated
+by the Iris logic. These are so called cameras,\footnote{This is
+  sometimes spelled CMRA (complete metric resource algebra). This
+  acronym is especially confusing when it became apparent that cameras
+  needn't be complete.} a
+generalization of partial commutative monoids. Put in an extremely
+terse way: cameras are (almost) partial commutative monoids internally
+to the topos of trees. It is well worth it, however, to unpack this
+statement.
 
-\section{Building a Concurrent Separation Logic}
+A camera is an algebraic structure on a set $M$ consisting of
+\begin{itemize}
+\item A family of equality relations: $x \nequiv{n} y$.
+\item An operator $\mtimes : M \times M \to M$.
+\item An operator $\mcore{-} : M \to \maybe{M} = M \uplus \{\bot\}$.
+\item An operator $\mval(-) : M \to \pset{\mathbb{N}}$
+\end{itemize}
+Intuitively a camera is a partial commutive monoid equipped with an
+operator telling us the local unit for an element if one exists. The
+main source of complication is Iris, as a guarded logic, is best
+regarded as a step-indexed logic of sorts. This step-indexing is then
+integrated into the partial commutative monoid under
+consideration. In fact, this step-indexing allows us to form cameras
+which depend on Iris propositions themselves. This powerful form of
+recursion (cameras depend on props, props depend on cameras) is what
+allows for the encoding invariants in the base logic.
 
-\section{Applications}
+The first part of this integration is that elements of the monoid can
+be compared for equality up to $n$ steps. This family of equivalence
+relations is required to satisfy the following two rules.
+\[
+  \All n. x \nequiv{n + 1} y \implies x \nequiv{n} y \qquad\qquad
+  (\All n. x \nequiv{n} y) \iff x = y
+\]
+This structure in the literature on Iris is called an ``ordered family
+of equivalences'' (OFE) and it arises quite frequently. We shall not
+need it until the more extended discussion of the semantics in
+Section~\ref{sec:model}. Another core requirement of a camera is that
+all of the operations on it must be functional for $\nequiv{n}$ but
+only up to $\nequiv{n}$. This means that, for instance,
+\begin{gather*}
+  x_1 \nequiv{n} x_2 \land y_1 \nequiv{n} y_2 \implies
+  x_1 \mtimes y_1 \nequiv{n} x_2 \mtimes y_2\\
+  x \nequiv{n} y \implies (n \in \mval(x) \iff n \in \mval(y))\\
+  x \nequiv{n} y \implies \mcore{x} \nequiv{n} \mcore{y}
+\end{gather*}
+The operation $\mtimes$ is the multiplication of partial commutative
+monoid so it is commutative and associative. Rather than making it
+explicitly partial though, it is total and certain elements of the
+monoid are judged to be invalid. The partiality of multiplication is
+then reflected in the failure of multiplication to send valid elements
+to valid elements. An element, $x$, is said to be valid for $n$ steps
+when $n \in \mval(x)$. This structure is a slight enrichment over the
+usual notion of partiality since it allows for the multiplication to
+be defined ``up to $n$ steps''.
 
-\section{Conclusion}
+Validity must satisfy a few rules. Firstly if a multiplication is
+valid, then any component of that multiplication must be at least as
+valid: $\mval(x \mtimes y) \subseteq \mval(x)$. Slightly less
+intuitively, there is an extension property associated with valid
+elements: if $n \in \mval(x)$ and $x \nequiv{n} y_1 \mtimes y_2$, then
+we must be able to find some $z_1, z_2$ so that $x = z_1 \times z_2$
+(notice this equality is \emph{on the nose} rather than up to an
+index) and where $z_i \nequiv{n} y_i$. This will prove crucial later
+in the semantics: without this property it wouldn't be possible to
+prove that $\later$ (see Subsection~\ref{subsec:guarded}) commutes
+with $\sep$.
+
+The last operation a camera is equipped with is the ability to
+\emph{core} an element, $\mcore{x}$. This operation is explicitly
+partial, explicitly returning $\bot$ in some cases. However, when
+$\mcore{x}$ is defined then it is required to be idempotent and to be
+a unit for $x$.
+
+This concludes the description of the camera structure. The Iris base
+logic will be defined relative to some camera $M$ with a distinguished
+global unit $\epsilon$. All of the rules of inference described will
+be true independent of $M$. This flexibility in the choice of $M$ is
+crucial for flexibility in Iris. We needn't fix a predefined
+collection of blessed cameras for use in proofs. It can be chosen by
+the user and bespoke cameras may be chosen for particular proofs. At
+the end of the day, the camera is internalized into the logic by the
+following proposition.
+\[
+  \inferrule{
+    \Gamma \proves t : M
+  }{\Gamma \proves \ownM{t} : \Omega}
+\]
+The judgment $\Gamma \proves t : M$ is understood by adding $M$ as a
+base type to our language and viewing each $a \in M$ as constant of
+type $M$. We are also free to use the signature to add new means of
+constructing terms of type $M$, thus internalizing certain operations
+on $M$. The proposition $\ownM{t}$ intuitively states the ownership of
+the resource $t$. The monoid structure on $M$ is internalized by
+separating conjunction, so that the following rule holds.
+\[
+  \inferrule{
+    \Gamma \proves t_1, t_2 : M
+  }{\provesIffJ{\Gamma}{\ownM{t_1 \cdot t_2}}{\ownM{t_1} \sep \ownM{t_2}}}
+\]
+Similarly, the unital element $\epsilon$ represents holding no
+resources so we have a rule for producing it (well, the formal term
+corresponding to it) in any circumstances.
+\[
+  \inferrule{ }{\provesJ{\Gamma}{\TRUE}{\ownM{\epsilon}}}
+\]
+We also want to only be able to own valid elements. This is crucial
+for using cameras to express invalid states when reasoning about
+programs later. In order to deal with this internally to the logic,
+we equip Iris with a new proposition.
+\[
+  \inferrule{
+    \Gamma \proves t : M
+  }{\Gamma \proves \mval(t) : \Omega}
+\]
+This judgment internalizes the validity that $M$ must come equipped
+with. The issue with this is that we cannot in general state a rule
+like the following:
+\[
+  \inferrule{
+    \neg \mval(t)
+  }{\provesJ{\Gamma}{\mval(t)}{\FALSE} : \Omega}
+\]
+The first issue is that $\mval(-)$ is not a boolean value, but a set
+of indices at which it is valid. The second more serious issue is that
+$t$ is a formal term which contains variables from the context $t$. It
+is not really a member of the set $M$. Instead we rely on the ability
+to parameterize Iris with a signature consisting of axioms. We first
+add an axiom for every term of type $M$ which is simply a code for an
+actual element $a \in M$ of the following form.
+\[
+  \inferrule{
+    a \in M\\
+    0 \not\in \mval(a)
+  }{\provesJ{\Gamma}{\mval(a)}{\FALSE}}
+\]
+But really the family of axioms that we want is that if
+$\Gamma \proves t : \tau$ and for all semantic environments
+$\eta : \Gamma$, if $0 \not\in \mval(\Sem{t}_\eta)$ then
+$\provesJ{\Gamma}{\mval(t)}{\FALSE}$. This axiom scheme can of course
+be justified by using the denotation described in
+Section~\ref{sec:model}. Though a bit hairy, this scheme does
+faithfully represent the proof techniques that one can use in iris-coq
+and is important for being able to practically reason about resources
+and is not fundamentally worse than any rule family generated by a
+meta-theoretic side condition. We also add a similar rule scheme for
+equality of terms of type $M$ so that open terms of the resource can
+be manipulated by things like commutativity of the
+camera. Specifically, we shall add an axiom family like the
+following.
+\[
+  \inferrule{
+    \All n, (\eta : \Gamma). \Sem{t_1}_\eta = \Sem{t_1}_\eta
+  }{\provesIffJ{\Gamma}{\ownM{t_1}}{\ownM{t_2}}}
+\]
+Finally, the following axioms are necessary for manipulating validity
+in various ways. The most important one of these rules is the second
+which captures the fact that we may only ever own valid rules.
+\begin{mathpar}
+  \inferrule{ }{\provesJ{\Gamma}{\mval(t_1 \cdot t_2)}{\mval(t_1)}}\and
+  \inferrule{ }{\provesJ{\Gamma}{\ownM{t}}{\mval(t)}}
+\end{mathpar}
+With this the Iris logic is an extremely rich framework. It's become
+an ideal setting for describing the ownership of elements of a
+camera.
+
+\subsection{Guardedness and L\"{o}b Induction}\label{subsec:guarded}
+
+\subsection{The Always \& Update Modality}\label{subsec:always}
+
+\section{The Model of Iris}\label{sec:model}
+
+\section{Building a Concurrent Separation Logic}\label{sec:encoding}
+
+\section{Applications}\label{sec:applications}
+
+\section{Conclusion}\label{sec:conclusions}
 
 
 \bibliographystyle{plainnat}
