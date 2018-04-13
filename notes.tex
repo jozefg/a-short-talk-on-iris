@@ -368,9 +368,34 @@ camera. Specifically, we shall add an axiom family like the
 following.
 \[
   \inferrule{
-    \All n, (\eta : \Gamma). \Sem{t_1}_\eta = \Sem{t_1}_\eta
+    \All n, (\eta : \Gamma). \Sem{t_1}_\eta = \Sem{t_2}_\eta
   }{\provesIffJ{\Gamma}{\ownM{t_1}}{\ownM{t_2}}}
 \]
+Now this is really in some sense a red herring. The addition of these
+axioms to the logic if we insist on understanding and manipulating
+Iris syntactically as a logic. A far more natural understanding avoids
+this odd truth-theoretic detour and approaches the base logic as a
+small list of facts that are true in the Iris model where real
+reasoning takes place. These rules encode some common patterns of
+inference and can be formulated into a well-behaved proof theory
+(higher-order bunched implication logic with a few modalities). The
+remainder of the ``rules'' are not really rules of the logic at all
+but a collection of facts which happen to be true of the model under
+consideration. This understanding means that Iris-as-a-logic is quite
+useless and ill-suited for proving much of what we want. This
+reasoning must instead be done in the model where the . This
+disentanglement of Iris-as-a-logic and Iris as a logic and intended
+model is crucial to making sense of the ``rules'' of the logic and
+what the embedding in Coq actually means. As a matter of future
+research I am extremely interested in isolating a usable proof theory
+of Iris but this is in fact future research. There has been some work
+in the direction of isolating better behaved proof theories and
+semantics of them~\citep{Biering:07,Bizjak:17}\footnote{Though these
+  two have been confined to semantic investigations, the relative
+  generality of the semantics compared to Iris itself has
+  \emph{forced} a more sensible proof theory} that may interest some
+readers.
+
 Finally, the following axioms are necessary for manipulating validity
 in various ways. The most important one of these rules is the second
 which captures the fact that we may only ever own valid rules.
@@ -383,6 +408,65 @@ an ideal setting for describing the ownership of elements of a
 camera.
 
 \subsection{Guardedness and L\"{o}b Induction}\label{subsec:guarded}
+
+If we want Iris to serve as the framework for constructing various
+concurrent separation logics or just generally tools for reasoning
+about programs, it becomes clear that it must deal with a recurring
+problem in language semantics: recursive definitions. Many of the
+hardest technical issues in the semantics of programming languages
+arise as questions of how to cook up a mathematical analogue for a
+recursive equation of some sort.
+
+Iris internalizes a powerful tool for solving recursive equations:
+guarded recursion. Guarded recursion allows for the formation of any
+recursive definition with the proviso that all of the recursive
+instances must occur below the \emph{later modality}. This later
+modality can be thought of indicating that something is not true
+currently but will be at the next step or world.
+
+This idea of using a particular modality to encode recursion comes
+from the work of \citet{Nakano:00} in the context of productive
+recursion. Since Iris is a logic, many of the subtle issues around the
+later modality are not problems. This means that the later modality
+may be governed by 5 basic rules.
+\begin{mathpar}
+  \inferrule{
+    \Gamma \proves P : \Omega
+  }{\Gamma \proves \later P : \Omega}\and
+  \inferrule{ }{\provesJ{\Gamma}{P}{\later P}}\and
+  \inferrule{ }{\provesJ{\Gamma}{\later P \to P}{P}}\and
+  \inferrule{
+    \text{$x$ is guarded in $P$}\\
+    \Gamma, x : \Omega \proves P : \Omega
+  }{\Gamma \proves \MU x. P : \Omega\\\\
+    \provesJ{\Gamma}{\TRUE}{\MU x. P = [\MU x. P/x]P}}
+\end{mathpar}
+The most interesting rules are the last three which govern how the
+later modality may be used to create recursive definitions. The third
+rule is a principle called L\"ob induction. Since Iris propositions
+are understood to be true up to a step-index, $n$, we can prove that a
+proposition hold by induction on the step-index. First we show that
+it's true at step $0$ (trivial since all propositions are true here)
+and then show that truth at step $n$ implies truth at $n + 1$. L\"ob
+induction internalizes this because $\later P$ is true when $P$ holds
+at the prior step-index. The rule states exactly that if $P$ being
+true at $n$ implies that $P$ is true at $n + 1$, then $P$ is true at
+all $n$.
+
+The fourth rule is slightly more subtle and governs the formation of
+guarded recursive definitions. This actual rule in Iris is more
+powerful, allowing the formation of recursive definitions at any
+complete type $\tau$ rather than just $\Omega$ but we do not need this
+extra generality. The idea of this rule is that $\MU x. P$ can be
+justified, like L\"ob induction, by induction on the step. At step $1$
+it is equivalent to $[\TRUE/x]P$, at step one it's equivalent to
+$[[\TRUE/x]P/x]P$, and so on. This is because the $\later$ modalities
+force the step to decrease whenever a recursive call, avoiding the
+need to every fully construct $\MU x. P$. A precise justification of
+this idea can be found in formal developments of guarded domain
+theory~\citep{Birkedal:10,Birkdel:11} and it's latent
+
+More su
 
 \subsection{The Always \& Update Modality}\label{subsec:always}
 
