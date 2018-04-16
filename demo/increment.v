@@ -6,7 +6,7 @@ From iris.heap_lang Require Export lang. (* Get the Coq definition of the ML lik
 From iris.proofmode Require Import tactics. (* Tools for manipulating Iris Predicates *)
 From iris.heap_lang Require Import proofmode notation. (* Tactics/notation specific to ML-like language *)
 From iris.algebra Require Import frac. (* We need the fractional monoid *)
-From iris.heap_lang.lib Require Import spawn par. (* Gives us the parallel execution operator *)
+From demo Require Import parallel. (* Gives us the parallel execution operator *)
 Set Default Proof Using "Type".
 
 (* First we define the program we actually wish to verify
@@ -29,7 +29,7 @@ Section proofs.
    * namespace for our invariants in case someone wants to use
    * this code somwhere else.
    *)
-  Context `{inG Σ fracR, spawnG Σ, heapG Σ} (N : namespace).
+  Context `{inG Σ fracR, parG Σ, heapG Σ} (N : namespace).
 
   (* These shorthands are not really necessary but it's
    * helpful to make the lemmas we need about manipulating
@@ -93,10 +93,9 @@ Section proofs.
    * code duplication
    *)
   Lemma branch_spec γ γ' ℓ :
-    ∀ n : nat, (inv N (inc_inv γ γ' ℓ) ∗ half γ' -∗
+    (inv N (inc_inv γ γ' ℓ) ∗ half γ' -∗
          WP (#ℓ <- !(#ℓ) + #1) {{ _, epsilon γ }})%I.
   Proof.
-    wp_load.
     iIntros "[#Hinv Hhalfγ']".
     wp_bind (Load _).
     iInv N as "Hinc" "Hclose".
@@ -182,13 +181,15 @@ Section proofs.
     { iNext; iLeft; iFrame. }
 
     iDestruct (split_one with "Hγ'") as "[Hγ'1 Hγ'2]".
-    iApply (wp_par with "[Hγ'1] [Hγ'2] []").
-    - iApply (branch_spec γ γ' with "[Hγ'1]").
+    iApply (par_spec N with "[Hγ'1] [Hγ'2] []").
+    - wp_lam.
+      iApply (branch_spec γ γ' with "[Hγ'1]").
       by iFrame.
-    - iApply (branch_spec γ γ' with "[Hγ'2]").
+    - wp_lam.
+      iApply (branch_spec γ γ' with "[Hγ'2]").
       by iFrame.
-    - iIntros (v1 v2) "[Heps1 Heps2]".
-      iNext.
+    - iIntros (p) "Hex".
+      iDestruct "Hex" as (v1 v2) "[% [Heps1 Heps2]]"; subst.
       wp_let.
       iInv N as "Hinc" "Hclose".
       iDestruct "Hinc" as "[Hisone | [Histwo | Histhree]]".

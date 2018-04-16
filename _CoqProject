@@ -1,0 +1,5 @@
+-Q demo demo
+-arg -w -arg -notation-overridden,-redundant-canonical-projection,-several-object-files
+
+demo/parallel.v
+demo/increment.v
